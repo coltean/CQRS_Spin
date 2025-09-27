@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using OrdersApi.Commands;
 using OrdersApi.Data;
 using OrdersApi.DTOs;
@@ -10,14 +11,23 @@ namespace OrdersApi.Handlers
     public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, OrderDTO>
     {
         private readonly AppDbContext _appDbContext;
+        private readonly IValidator<CreateOrderCommand> _validator;
 
-        public CreateOrderCommandHandler(AppDbContext appDbContext)
+        public CreateOrderCommandHandler(AppDbContext appDbContext, IValidator<CreateOrderCommand> validator)
         {
             _appDbContext = appDbContext;
+            _validator = validator;
         }
 
         public async Task<OrderDTO> HandleAsync(CreateOrderCommand command, CancellationToken cancellationToken = default)
         {
+            var validationResult = await _validator.ValidateAsync(command, cancellationToken);
+
+            if (!validationResult.IsValid)
+            {
+                throw new ValidationException(validationResult.Errors);
+            }
+
             var order = new Order
             {
                 FirstName = command.FirstName,

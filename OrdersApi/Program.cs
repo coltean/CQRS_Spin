@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using OrdersApi.Commands;
 using OrdersApi.Data;
@@ -15,6 +16,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, OrderDTO>, CreateOrderCommandHandler>();
 builder.Services.AddScoped<IQueryHandler<IEnumerable<OrderDTO>>, GetOrdersQueryHandler>();
 builder.Services.AddScoped<IQueryHandler<GetOrderByIdQuery, OrderDTO?>, GetOrderByIdQueryHandler>();
+builder.Services.AddScoped<IValidator<CreateOrderCommand>, CreateOrderCommandValidator>();
 
 var app = builder.Build();
 
@@ -25,8 +27,22 @@ if (app.Environment.IsDevelopment())
 
 app.MapPost("/api/orders", async (CreateOrderCommand order, ICommandHandler<CreateOrderCommand, OrderDTO> commandHandler) =>
 {
-    var cretedOrderCommand = await commandHandler.HandleAsync(order);
-    return Results.Created($"/api/orders/{cretedOrderCommand.Id}", cretedOrderCommand);
+    try
+    {
+        var cretedOrderCommand = await commandHandler.HandleAsync(order);
+        if (cretedOrderCommand is null)
+        {
+            return Results.BadRequest("Failed to create order.");
+        }
+        return Results.Created($"/api/orders/{cretedOrderCommand.Id}", cretedOrderCommand);
+
+    }
+    catch (ValidationException ex)
+    {
+        var errors = ex.Errors.Select(x => x.ErrorMessage);
+        return Results.BadRequest(errors);
+    }
+
 });
 
 app.MapGet("/api/orders", async (IQueryHandler<IEnumerable<OrderDTO>> queryHandler) =>
