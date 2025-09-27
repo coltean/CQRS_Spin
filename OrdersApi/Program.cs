@@ -27,4 +27,10 @@ app.MapPost("/api/orders", async (Order order, AppDbContext db) =>
 app.MapGet("/api/orders", async (AppDbContext db) =>
     await db.Orders.ToListAsync());
 
+app.MapGet("/api/orders/{id}", async (int id, AppDbContext db) =>
+    await db.Orders.FindAsync(id)
+        is Order order
+            ? Results.Ok(order)
+            : Results.NotFound());
+
 app.Run();
