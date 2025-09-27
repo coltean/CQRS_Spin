@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using OrdersApi.Commands;
 using OrdersApi.Data;
+using OrdersApi.DTOs;
 using OrdersApi.Handlers;
+using OrdersApi.Handlers.Interfaces;
 using OrdersApi.Queries;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +12,9 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("BasicDatabaseConnection")));
+builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, OrderDTO>, CreateOrderCommandHandler>();
+builder.Services.AddScoped<IQueryHandler<IEnumerable<OrderDTO>>, GetOrdersQueryHandler>();
+builder.Services.AddScoped<IQueryHandler<GetOrderByIdQuery, OrderDTO?>, GetOrderByIdQueryHandler>();
 
 var app = builder.Build();
 
@@ -18,29 +23,18 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapPost("/api/orders", async (CreateOrderCommand order, AppDbContext db) =>
+app.MapPost("/api/orders", async (CreateOrderCommand order, ICommandHandler<CreateOrderCommand, OrderDTO> commandHandler) =>
 {
-    //order.CreatedAt = DateTime.UtcNow;
-    //db.Orders.Add(order);
-    //await db.SaveChangesAsync();
-    //return Results.Created($"/api/orders/{order.Id}", order);
-
-    var cretedOrderCommand = await CreateOrderCommandHandler.HandleAsync(order, db);
+    var cretedOrderCommand = await commandHandler.HandleAsync(order);
     return Results.Created($"/api/orders/{cretedOrderCommand.Id}", cretedOrderCommand);
 });
 
-app.MapGet("/api/orders", async (AppDbContext db) =>
-    //await db.Orders.ToListAsync());
-    await GetOrdersQueryHandler.HandleAsync(db));
+app.MapGet("/api/orders", async (IQueryHandler<IEnumerable<OrderDTO>> queryHandler) =>
+    await queryHandler.HandleAsync());
 
-app.MapGet("/api/orders/{id}", async (int id, AppDbContext db) =>
+app.MapGet("/api/orders/{id}", async (int id, IQueryHandler<GetOrderByIdQuery, OrderDTO?> queryHandler) =>
 {
-    //await db.Orders.FindAsync(id)
-    //    is Order order
-    //        ? Results.Ok(order)
-    //        : Results.NotFound()
-
-    var order = await GetOrderByIdQueryHandler.HandleAsync(new GetOrderByIdQuery(id), db);
+    var order = await queryHandler.HandleAsync(new GetOrderByIdQuery(id));
     return order is not null
         ? Results.Ok(order)
         : Results.NotFound();
