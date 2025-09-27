@@ -8,7 +8,7 @@ namespace OrdersApi.Handlers
     {
         public static async Task<Order?> HandleAsync(GetOrderByIdQuery query, AppDbContext dbContext, CancellationToken cancellationToken = default)
         {
-            return await dbContext.Orders.FindAsync(new object[] { query.Id }, cancellationToken);
+            return await dbContext.Orders.FindAsync([query.Id], cancellationToken);
         }
     }
 }
