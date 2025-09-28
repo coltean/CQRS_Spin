@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OrdersApi.Commands;
 using OrdersApi.Data;
 using OrdersApi.DTOs;
+using OrdersApi.Events;
 using OrdersApi.Handlers;
 using OrdersApi.Handlers.Interfaces;
 using OrdersApi.Queries;
@@ -17,6 +18,7 @@ builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, OrderDTO>, Create
 builder.Services.AddScoped<IQueryHandler<IEnumerable<OrderDTO>>, GetOrdersQueryHandler>();
 builder.Services.AddScoped<IQueryHandler<GetOrderByIdQuery, OrderDTO?>, GetOrderByIdQueryHandler>();
 builder.Services.AddScoped<IValidator<CreateOrderCommand>, CreateOrderCommandValidator>();
+builder.Services.AddSingleton<IEventPublisher, ConsoleEventPublisher>();
 
 var app = builder.Build();
 
