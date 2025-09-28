@@ -1,5 +1,4 @@
 ﻿using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 using OrdersApi.Commands;
 using OrdersApi.Data;
 using OrdersApi.DTOs;
@@ -11,13 +10,13 @@ namespace OrdersApi.Handlers
 {
     public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, OrderDTO>
     {
-        private readonly AppDbContext _appDbContext;
+        private readonly WriteAppDbContext _writeAppDbContext;
         private readonly IValidator<CreateOrderCommand> _validator;
         private readonly IEventPublisher _eventPublisher;
 
-        public CreateOrderCommandHandler(AppDbContext appDbContext, IValidator<CreateOrderCommand> validator, IEventPublisher eventPublisher)
+        public CreateOrderCommandHandler(WriteAppDbContext writeAppDbContext, IValidator<CreateOrderCommand> validator, IEventPublisher eventPublisher)
         {
-            _appDbContext = appDbContext;
+            _writeAppDbContext = writeAppDbContext;
             _validator = validator;
             _eventPublisher = eventPublisher;
         }
@@ -39,8 +38,8 @@ namespace OrdersApi.Handlers
                 CreatedAt = DateTime.UtcNow,
                 TotalCost = command.TotalCost
             };
-            await _appDbContext.Orders.AddAsync(order);
-            await _appDbContext.SaveChangesAsync(cancellationToken);
+            await _writeAppDbContext.Orders.AddAsync(order);
+            await _writeAppDbContext.SaveChangesAsync(cancellationToken);
             await _eventPublisher.PublishAsync(new OrderCreatedEvent(order.Id, order.FirstName, order.LastName, order.Status, order.TotalCost), cancellationToken);
             return new OrderDTO(
                 order.Id,

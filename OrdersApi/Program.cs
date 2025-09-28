@@ -14,6 +14,10 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("BasicDatabaseConnection")));
+builder.Services.AddDbContext<ReadAppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("ReadDatabaseConnection")));
+builder.Services.AddDbContext<WriteAppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("WriteDatabaseConnection")));
 builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, OrderDTO>, CreateOrderCommandHandler>();
 builder.Services.AddScoped<IQueryHandler<IEnumerable<OrderDTO>>, GetOrdersQueryHandler>();
 builder.Services.AddScoped<IQueryHandler<GetOrderByIdQuery, OrderDTO?>, GetOrderByIdQueryHandler>();
