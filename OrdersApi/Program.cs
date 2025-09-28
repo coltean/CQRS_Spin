@@ -6,6 +6,7 @@ using OrdersApi.DTOs;
 using OrdersApi.Events;
 using OrdersApi.Handlers;
 using OrdersApi.Handlers.Interfaces;
+using OrdersApi.Projections;
 using OrdersApi.Queries;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,7 +23,8 @@ builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, OrderDTO>, Create
 builder.Services.AddScoped<IQueryHandler<IEnumerable<OrderDTO>>, GetOrdersQueryHandler>();
 builder.Services.AddScoped<IQueryHandler<GetOrderByIdQuery, OrderDTO?>, GetOrderByIdQueryHandler>();
 builder.Services.AddScoped<IValidator<CreateOrderCommand>, CreateOrderCommandValidator>();
-builder.Services.AddSingleton<IEventPublisher, ConsoleEventPublisher>();
+builder.Services.AddSingleton<IEventPublisher, InProcessEventPublisher>();
+builder.Services.AddScoped<IEventHandler<OrderCreatedEvent>, OrderCreatedProjectionHandler>();
 
 var app = builder.Build();
 
