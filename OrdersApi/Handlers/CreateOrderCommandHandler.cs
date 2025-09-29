@@ -1,27 +1,27 @@
 ﻿using FluentValidation;
+using MediatR;
 using OrdersApi.Commands;
 using OrdersApi.Data;
 using OrdersApi.DTOs;
 using OrdersApi.Events;
-using OrdersApi.Handlers.Interfaces;
 using OrdersApi.Models;
 
 namespace OrdersApi.Handlers
 {
-    public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, OrderDTO>
+    public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, OrderDTO>
     {
         private readonly WriteAppDbContext _writeAppDbContext;
         private readonly IValidator<CreateOrderCommand> _validator;
-        private readonly IEventPublisher _eventPublisher;
+        private readonly IMediator _mediator;
 
-        public CreateOrderCommandHandler(WriteAppDbContext writeAppDbContext, IValidator<CreateOrderCommand> validator, IEventPublisher eventPublisher)
+        public CreateOrderCommandHandler(WriteAppDbContext writeAppDbContext, IValidator<CreateOrderCommand> validator, IMediator mediator)
         {
             _writeAppDbContext = writeAppDbContext;
             _validator = validator;
-            _eventPublisher = eventPublisher;
+            _mediator = mediator;
         }
 
-        public async Task<OrderDTO> HandleAsync(CreateOrderCommand command, CancellationToken cancellationToken = default)
+        public async Task<OrderDTO> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
         {
             var validationResult = await _validator.ValidateAsync(command, cancellationToken);
 
@@ -40,7 +40,7 @@ namespace OrdersApi.Handlers
             };
             await _writeAppDbContext.Orders.AddAsync(order);
             await _writeAppDbContext.SaveChangesAsync(cancellationToken);
-            await _eventPublisher.PublishAsync(new OrderCreatedEvent(order.Id, order.FirstName, order.LastName, order.Status, order.TotalCost), cancellationToken);
+            await _mediator.Publish(new OrderCreatedEvent(order.Id, order.FirstName, order.LastName, order.Status, order.TotalCost), cancellationToken);
             return new OrderDTO(
                 order.Id,
                 order.FirstName,

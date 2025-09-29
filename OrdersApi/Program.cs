@@ -1,30 +1,22 @@
 using FluentValidation;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using OrdersApi.Commands;
 using OrdersApi.Data;
 using OrdersApi.DTOs;
 using OrdersApi.Events;
-using OrdersApi.Handlers;
-using OrdersApi.Handlers.Interfaces;
-using OrdersApi.Projections;
 using OrdersApi.Queries;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("BasicDatabaseConnection")));
 builder.Services.AddDbContext<ReadAppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("ReadDatabaseConnection")));
 builder.Services.AddDbContext<WriteAppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("WriteDatabaseConnection")));
-builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, OrderDTO>, CreateOrderCommandHandler>();
-builder.Services.AddScoped<IQueryHandler<IEnumerable<OrderDTO>>, GetOrdersQueryHandler>();
-builder.Services.AddScoped<IQueryHandler<GetOrderByIdQuery, OrderDTO?>, GetOrderByIdQueryHandler>();
 builder.Services.AddScoped<IValidator<CreateOrderCommand>, CreateOrderCommandValidator>();
-builder.Services.AddSingleton<IEventPublisher, InProcessEventPublisher>();
-builder.Services.AddScoped<IEventHandler<OrderCreatedEvent>, OrderCreatedProjectionHandler>();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining(typeof(Program)));
 
 var app = builder.Build();
 
@@ -33,11 +25,11 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapPost("/api/orders", async (CreateOrderCommand order, ICommandHandler<CreateOrderCommand, OrderDTO> commandHandler) =>
+app.MapPost("/api/orders", async (CreateOrderCommand order, IRequestHandler<CreateOrderCommand, OrderDTO> commandHandler) =>
 {
     try
     {
-        var cretedOrderCommand = await commandHandler.HandleAsync(order);
+        var cretedOrderCommand = await commandHandler.Handle(order, cancellationToken: default);
         if (cretedOrderCommand is null)
         {
             return Results.BadRequest("Failed to create order.");
@@ -53,12 +45,12 @@ app.MapPost("/api/orders", async (CreateOrderCommand order, ICommandHandler<Crea
 
 });
 
-app.MapGet("/api/orders", async (IQueryHandler<IEnumerable<OrderDTO>> queryHandler) =>
-    await queryHandler.HandleAsync());
+app.MapGet("/api/orders", async (IRequestHandler<GetOrdersQuery, IEnumerable<OrderDTO>> queryHandler) =>
+    await queryHandler.Handle(new GetOrdersQuery(), cancellationToken: default));
 
-app.MapGet("/api/orders/{id}", async (int id, IQueryHandler<GetOrderByIdQuery, OrderDTO?> queryHandler) =>
+app.MapGet("/api/orders/{id}", async (int id, IRequestHandler<GetOrderByIdQuery, OrderDTO?> queryHandler) =>
 {
-    var order = await queryHandler.HandleAsync(new GetOrderByIdQuery(id));
+    var order = await queryHandler.Handle(new GetOrderByIdQuery(id), cancellationToken: default);
     return order is not null
         ? Results.Ok(order)
         : Results.NotFound();

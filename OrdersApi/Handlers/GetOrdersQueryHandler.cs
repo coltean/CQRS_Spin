@@ -1,11 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using MediatR;
+using Microsoft.EntityFrameworkCore;
 using OrdersApi.Data;
 using OrdersApi.DTOs;
-using OrdersApi.Handlers.Interfaces;
+using OrdersApi.Queries;
 
 namespace OrdersApi.Handlers
 {
-    public class GetOrdersQueryHandler : IQueryHandler<IEnumerable<OrderDTO>>
+
+    public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, IEnumerable<OrderDTO>>
     {
         private readonly ReadAppDbContext _readAppDbContext;
 
@@ -14,7 +16,7 @@ namespace OrdersApi.Handlers
             _readAppDbContext = readAppDbContext;
         }
 
-        public async Task<IEnumerable<OrderDTO>> HandleAsync(CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<OrderDTO>> Handle(GetOrdersQuery request, CancellationToken cancellationToken)
         {
             var orders = await _readAppDbContext.Orders.ToListAsync(cancellationToken);
             return orders.Select(order => new OrderDTO(

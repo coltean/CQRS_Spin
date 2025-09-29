@@ -1,11 +1,11 @@
-﻿using OrdersApi.Data;
+﻿using MediatR;
+using OrdersApi.Data;
 using OrdersApi.DTOs;
-using OrdersApi.Handlers.Interfaces;
 using OrdersApi.Queries;
 
 namespace OrdersApi.Handlers
 {
-    public class GetOrderByIdQueryHandler : IQueryHandler<GetOrderByIdQuery, OrderDTO?>
+    public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, OrderDTO?>
     {
         private readonly ReadAppDbContext _readAppDbContext;
 
@@ -14,7 +14,7 @@ namespace OrdersApi.Handlers
             _readAppDbContext = appDbContext;
         }
 
-        public async Task<OrderDTO?> HandleAsync(GetOrderByIdQuery query, CancellationToken cancellationToken = default)
+        public async Task<OrderDTO?> Handle(GetOrderByIdQuery query, CancellationToken cancellationToken)
         {
             var order = await _readAppDbContext.Orders.FindAsync([query.Id], cancellationToken);
             if (order is null)
